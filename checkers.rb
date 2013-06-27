@@ -4,18 +4,19 @@ require 'colored'
 class Board
   attr_reader :pieces
 
-  def initialize
+  def initialize(pieces = true)
     @pieces = []
-
-    (0..2).each do |i|
-      [0,2,4,6].each do |k|
-        @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :blue, self)
+    if pieces == true
+      (0..2).each do |i|
+        [0,2,4,6].each do |k|
+          @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :blue, self)
+        end
       end
-    end
 
-    (5..7).each do |i|
-      [0,2,4,6].each do |k|
-        @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :red, self)
+      (5..7).each do |i|
+        [0,2,4,6].each do |k|
+          @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :red, self)
+        end
       end
     end
 
@@ -45,34 +46,123 @@ class Board
 
 
 
-  def valid_move?(startpoint,endpoint,color)
-    restrict = (any_jumps?(color) ? :jumps : nil)
-    move_type = move_type(startpoint, endpoint)
-    piece = self[startpoint]
-    piece && \
-    piece.possible_moves(restrict).include?(endpoint) && \
-    piece.color == color
+  # def valid_move?(startpoint,endpoint,color)
+  #   restrict = (any_jumps?(color) ? :jumps : nil)
+  #   move_type = move_type(startpoint, endpoint)
+  #   piece = self[startpoint]
+  #   piece && \
+  #   piece.possible_moves(restrict).include?(endpoint) && \
+  #   piece.color == color
+  # end
 
+  def perform_shift(color, startpoint, endpoint)
+    piece = self[startpoint]
+    unless on_board?(startpoint) && on_board?(endpoint)
+      raise InvalidMoveError.new "That coordinate is not on the board."
+    end
+    unless piece.reachable_shifts.include?(endpoint)
+      raise InvalidMoveError.new "That piece cannot reach there."
+    end
+    unless self[endpoint].nil?
+      raise InvalidMoveError.new "That coordinate is occupied."
+    end
+    unless piece.color == color
+      raise InvalidMoveError.new "That is not your color."
+    end
+    piece.position = endpoint
   end
 
-  def move_and_kill(startpoint, endpoint)
+  def perform_jump(color, startpoint, endpoint)
+    piece = self[startpoint]
     y1, x1 = startpoint[0], startpoint[1]
     y2, x2 = endpoint[0], endpoint[1]
-    self[startpoint].position = endpoint
-    victim = self[[(y1 + y2) / 2, (x1 + x2) / 2]] if (y1 - y2).abs == 2
-    @pieces.delete(victim) unless victim.nil?
+    unless on_board?(startpoint) && on_board?(endpoint)
+      raise InvalidMoveError.new "That coordinate is not on the board."
+    end
+    unless piece.reachable_jumps.include?(endpoint)
+      raise InvalidMoveError.new "That piece cannot jump there."
+    end
+    unless self[endpoint].nil?
+      raise InvalidMoveError.new "That coordinate is occupied."
+    end
+    unless piece.color == color
+      raise InvalidMoveError.new "That is not your color."
+    end
+    victim = self[[(y1 + y2) / 2, (x1 + x2) / 2]]
+    piece.position = endpoint
+    @pieces.delete(victim)
   end
 
-  def move_type(startpoint, endpoint)
-    (startpoint[0] - endpoint[0]).abs == 1 ? :move : :shift
+  def perform_moves!(color, *seq)
+    p seq
+    seq.each_with_index do |startpoint, i|
+
+      break if i == seq.length - 1
+      endpoint = seq[i+1]
+      p (startpoint[0] - endpoint[0]).abs #debug
+      if (startpoint[0] - endpoint[0]).abs == 1
+        raise InvalidMoveError.new "You may only shift." if seq.length > 2
+        perform_shift(color, startpoint, endpoint)
+      else
+        perform_jump(color, startpoint, endpoint)
+      end
+    end
+    promote(seq[-1])
   end
 
-  def any_jumps?(color)
-    all_pieces(color).any? { |piece| piece.possible_moves(:jumps)[0] }
+  def valid_move_seq?(color, *seq)
+    temp_board = dup
+    begin
+      temp_board.perform_moves!(color, *seq)
+    rescue InvalidMoveError => e
+      p e.message
+      return false
+    end
+    true
   end
+
+  # def move_and_kill(startpoint, endpoint)
+  #   y1, x1 = startpoint[0], startpoint[1]
+  #   y2, x2 = endpoint[0], endpoint[1]
+  #   self[startpoint].position = endpoint
+  #   victim = self[[(y1 + y2) / 2, (x1 + x2) / 2]] if (y1 - y2).abs == 2
+  #   @pieces.delete(victim) unless victim.nil?
+  # end
+
+  # def move_type(startpoint, endpoint)
+  #   (startpoint[0] - endpoint[0]).abs == 1 ? :move : :shift
+  # end
+
+  # def any_jumps?(color)
+  #   all_pieces(color).any? { |piece| piece.possible_moves(:jumps)[0] }
+  # end
 
   def all_pieces(color)
     @pieces.select{|piece| piece.color == color}
+  end
+
+  def promote(coords)
+    if self[coords] && self[coords].promotion_row == coords[0]
+      promotee = @pieces.find{|piece| piece.position == coords}
+      color = promotee.color
+      @pieces.delete(promotee)
+      @pieces << King.new(coords, color, self)
+      puts "#{color.to_s.capitalize} soldier promoted!"
+    end
+  end
+
+  def on_board?(coord)
+    coord.all? { |x| (0..7).include?(x) }
+  end
+
+  def dup
+    temp_board = Board.new(false)
+    @pieces.each do |piece|
+      position = piece.position
+      color = piece.color
+      temp_board.pieces << Piece.new(position, color, temp_board)
+    end
+    temp_board
   end
 
 
@@ -96,23 +186,23 @@ class Piece
 #     possible_shifts + possible_jumps
 #   end
 
-  def possible_moves(restrict = nil)
-    moves = []
-    y, x = @position
-    shift_steps.each do |step|
-      dy, dx = step
-      if @board[[y + dy, x + dx]].nil?
-        moves << [y + dy, x + dx] unless restrict == :jumps
-        #p "Added #{[y + dy, x + dx]}" #debug
-      elsif @board[[y + dy, x + dx]].color == @color
-        next
-      else
-        moves << [y + 2 * dy, x + 2 * dx]
-        #p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
-      end
-    end
-    moves
-  end
+  # def possible_moves(restrict = nil)
+  #   moves = []
+  #   y, x = @position
+  #   shift_steps.each do |step|
+  #     dy, dx = step
+  #     if @board[[y + dy, x + dx]].nil?
+  #       moves << [y + dy, x + dx] unless restrict == :jumps
+  #       #p "Added #{[y + dy, x + dx]}" #debug
+  #     elsif @board[[y + dy, x + dx]].color == @color
+  #       next
+  #     else
+  #       moves << [y + 2 * dy, x + 2 * dx]
+  #       #p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
+  #     end
+  #   end
+  #   moves
+  # end
 
 
   def shift_steps
@@ -125,33 +215,47 @@ class Piece
     marker.send("#{color}_on_#{background}")
   end
 
-  # def possible_shifts
-  #   shifts = Set.new
-  #   y, x = @position
-  #   shift_steps.each do |step|
-  #     dy, dx = step[0], step[1]
-  #     tentative = [y + dy, x + dx]
-  #     shifts << tentative if @board[tentative].nil?
-  #   end
-  #
-  #   shifts.select{ |shift| shift.all?{ |coord| (0..7).include?(coord) } }
-  # end
-  #
-  # def possible_jumps
-  #   jumps = Set.new
-  #   y, x = @position
-  #   shift_steps.each do |step|
-  #     dy, dx = step[0], step[1]
-  #     tentative = [y + 2 * dy, x + 2 * dx]
-  #     between = [y + dy, x + dx]
-  #     next if possible_shifts.include?(between)
-  #     jumps << tentative if @board[tentative].nil? && @board[between].color
-  #   end
-  #
-  #   jumps.select{ |jump| jump.all?{ |coord| (0..7).include?(coord) } }
-  # end
+  def reachable_moves
+    reachable_shifts + reachable_moves
+  end
 
+  def reachable_shifts
+    shifts = []
+    shift_steps.map do |step|
+      shifts << [@position[0] + step[0], @position[1] + step[1]]
+    end
 
+    shifts
+  end
+
+  def reachable_jumps
+    jumps = []
+    y, x = @position
+    shift_steps.each do |step|
+      dy, dx = step[0], step[1]
+      tentative = [y + 2 * dy, x + 2 * dx]
+      between = [y + dy, x + dx]
+      p between
+      next if @board[between].nil? || @board[between].color == color
+      jumps << tentative
+    end
+
+    jumps
+  end
+
+end
+
+class King < Piece
+
+  def shift_steps
+    [[-1, 1], [-1, -1], [1, 1],[1, -1]]
+  end
+
+  def to_s
+    marker = " K "
+    background = @position.inject(:+).even? ? "white" : "black"
+    marker.send("#{color}_on_#{background}")
+  end
 
 end
 
@@ -172,11 +276,11 @@ class Game
       @board.display_board
       player = toggle_player(player)
       move_coords = player.get_coords
-      until @board.valid_move?(move_coords[0], move_coords[1], player.color)
+      until @board.valid_move_seq?(player.color, *move_coords)
         puts "Invalid move: #{move_coords[0]} to #{move_coords[1]}"
         move_coords = player.get_coords
       end
-      @board.move_and_kill(move_coords[0],move_coords[1])
+      @board.perform_moves!(player.color, *move_coords)
     end
   end
 
@@ -200,13 +304,30 @@ class Human
 
   def get_coords
     puts "#{color.to_s.capitalize} Player's Turn"
-    puts "Input command: (yx,yx)"
+    puts "Input command."
+    puts "Ex: 'yx,yx' for a shift, or 'yx,yx,yx,...' for a jump sequence."
     gets.chomp.split(",").map { |coords| [coords[0].to_i, coords[1].to_i] }
   end
 
 end
 
+class InvalidMoveError < StandardError
+end
+
 if __FILE__ == $0
   game = Game.new
   game.play
+
+  # board = Board.new(false)
+  # board.pieces << Piece.new([4,3],:red,board)
+  # board.pieces << Piece.new([1,2],:blue,board)
+  # board.pieces << Piece.new([3,2],:blue,board)
+  # board.display_board
+  # p board.valid_move_seq?([4,3],[2,1],[0,3])
+  # board.display_board
+  # p board.perform_moves!([4,3],[2,1],[3,0])
+  # board.display_board
+
+
+
 end
