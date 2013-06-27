@@ -94,16 +94,15 @@ class Board
   end
 
   def perform_moves!(color, *seq)
-    p seq
     seq.each_with_index do |startpoint, i|
 
       break if i == seq.length - 1
       endpoint = seq[i+1]
-      p (startpoint[0] - endpoint[0]).abs #debug
       if (startpoint[0] - endpoint[0]).abs == 1
         raise InvalidMoveError.new "You may only shift." if seq.length > 2
         perform_shift(color, startpoint, endpoint)
       else
+        p "Color #{color}, start #{startpoint}, end #{endpoint}"
         perform_jump(color, startpoint, endpoint)
       end
     end
@@ -115,7 +114,7 @@ class Board
     begin
       temp_board.perform_moves!(color, *seq)
     rescue InvalidMoveError => e
-      p e.message
+      puts e.message
       return false
     end
     true
@@ -147,7 +146,7 @@ class Board
       color = promotee.color
       @pieces.delete(promotee)
       @pieces << King.new(coords, color, self)
-      puts "#{color.to_s.capitalize} soldier promoted!"
+      puts "#{color.to_s.capitalize} Soldier promoted!"
     end
   end
 
@@ -160,7 +159,8 @@ class Board
     @pieces.each do |piece|
       position = piece.position
       color = piece.color
-      temp_board.pieces << Piece.new(position, color, temp_board)
+      piece_type = piece.class
+      temp_board.pieces << piece_type.new(position, color, temp_board)
     end
     temp_board
   end
@@ -231,11 +231,14 @@ class Piece
   def reachable_jumps
     jumps = []
     y, x = @position
-    shift_steps.each do |step|
+    p "I am a #{self.class}"
+    p "with steps #{shift_steps}"
+    self.shift_steps.each do |step|
       dy, dx = step[0], step[1]
       tentative = [y + 2 * dy, x + 2 * dx]
       between = [y + dy, x + dx]
-      p between
+      p "Thinking about jumping over #{between} to #{tentative}"
+      p "Between is a : #{@board[between].class}"
       next if @board[between].nil? || @board[between].color == color
       jumps << tentative
     end
@@ -248,7 +251,7 @@ end
 class King < Piece
 
   def shift_steps
-    [[-1, 1], [-1, -1], [1, 1],[1, -1]]
+    [[-1, 1], [-1, -1], [1, 1], [1, -1]]
   end
 
   def to_s
@@ -262,7 +265,7 @@ end
 
 
 class Game
-  attr_reader :board
+  attr_accessor :board
 
   def initialize
     @board = Board.new
@@ -277,11 +280,11 @@ class Game
       player = toggle_player(player)
       move_coords = player.get_coords
       until @board.valid_move_seq?(player.color, *move_coords)
-        puts "Invalid move: #{move_coords[0]} to #{move_coords[1]}"
         move_coords = player.get_coords
       end
       @board.perform_moves!(player.color, *move_coords)
     end
+    puts "#{player.color.upcase} WINS!"
   end
 
   def toggle_color(color)
@@ -316,17 +319,30 @@ end
 
 if __FILE__ == $0
   game = Game.new
-  game.play
+
 
   # board = Board.new(false)
-  # board.pieces << Piece.new([4,3],:red,board)
-  # board.pieces << Piece.new([1,2],:blue,board)
-  # board.pieces << Piece.new([3,2],:blue,board)
+#   game.board= Board.new(false)
+#   game.board.pieces << King.new([0,7],:blue,game.board)
+#   game.board.pieces << Piece.new([1,6],:red,game.board)
+#   game.board.pieces << Piece.new([3,4],:red,game.board)
+#   game.board.pieces << Piece.new([3,2],:red,game.board)
+#   game.board.pieces << Piece.new([7,7],:red,game.board)
+#
+#   game.board.display_board
+  # p game.board[[4,3]].class
+  # # p game.board[[4,3]].reachable_jumps
+  # p game.board.valid_move_seq?(:blue,[4,3],[2,1])
+  # game.board.display_board
+
+
+
+
+  # board.perform_moves!(:red,[0,7],[2,5],[4,3],[2,1])
   # board.display_board
-  # p board.valid_move_seq?([4,3],[2,1],[0,3])
-  # board.display_board
-  # p board.perform_moves!([4,3],[2,1],[3,0])
-  # board.display_board
+
+  game.play
+
 
 
 
