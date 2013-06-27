@@ -75,9 +75,28 @@ class Piece
     color == :red ? 0 : 7
   end
 
-  def possible_moves
-    possible_shifts + possible_jumps
+  # def possible_moves
+#     possible_shifts + possible_jumps
+#   end
+
+  def possible_moves(include_shifts = true)
+    moves = []
+    y, x = @position
+    shift_steps.each do |step|
+      dy, dx = step
+      if @board[[y + dy, x + dx]].nil?
+        moves << [y + dy, x + dx] if include_shifts
+        p "Added #{[y + dy, x + dx]}" #debug
+      elsif @board[[y + dy, x + dx]].color == @color
+        next
+      else
+        moves << [y + 2 * dy, x + 2 * dx]
+        p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
+      end
+    end
+    moves
   end
+
 
   def shift_steps
     color == :red ? [[-1, 1],[-1, -1]] : [[1, 1],[1, -1]]
@@ -89,30 +108,31 @@ class Piece
     marker.send("#{color}_on_#{background}")
   end
 
-  def possible_shifts
-    shifts = Set.new
-    y, x = @position
-    shift_steps.each do |step|
-      dy, dx = step[0], step[1]
-      tentative = [y + dy, x + dx]
-      shifts << tentative if @board[tentative].nil?
-    end
-
-    shifts.select{ |shift| shift.all?{ |coord| (0..7).include?(coord) } }
-  end
-
-  def possible_jumps
-    jumps = Set.new
-    y, x = @position
-    shift_steps.each do |step|
-      dy, dx = step[0], step[1]
-      next if possible_shifts.include?([y + dy, x + dx])
-      tentative = [y + 2 * dy, x + 2 * dx]
-      jumps << tentative if @board[tentative].nil?
-    end
-
-    jumps.select{ |jump| jump.all?{ |coord| (0..7).include?(coord) } }
-  end
+  # def possible_shifts
+  #   shifts = Set.new
+  #   y, x = @position
+  #   shift_steps.each do |step|
+  #     dy, dx = step[0], step[1]
+  #     tentative = [y + dy, x + dx]
+  #     shifts << tentative if @board[tentative].nil?
+  #   end
+  #
+  #   shifts.select{ |shift| shift.all?{ |coord| (0..7).include?(coord) } }
+  # end
+  #
+  # def possible_jumps
+  #   jumps = Set.new
+  #   y, x = @position
+  #   shift_steps.each do |step|
+  #     dy, dx = step[0], step[1]
+  #     tentative = [y + 2 * dy, x + 2 * dx]
+  #     between = [y + dy, x + dx]
+  #     next if possible_shifts.include?(between)
+  #     jumps << tentative if @board[tentative].nil? && @board[between].color
+  #   end
+  #
+  #   jumps.select{ |jump| jump.all?{ |coord| (0..7).include?(coord) } }
+  # end
 
 
 
