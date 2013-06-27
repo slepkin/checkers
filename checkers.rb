@@ -45,12 +45,18 @@ class Board
 
 
 
-  def valid_move?(startpoint,endpoint)
-    self[startpoint] && self[startpoint].possible_moves.include?(endpoint)
+  def valid_move?(startpoint,endpoint,color)
+    piece = self[startpoint]
+    piece && piece.possible_moves.include?(endpoint) && piece.color == color
+
   end
 
   def move(startpoint,endpoint)
     self[startpoint].position = endpoint
+  end
+
+  def no_pieces(color)
+    !@pieces.any?{|piece| piece.color == color}
   end
 
 end
@@ -89,12 +95,10 @@ class Piece
     shift_steps.each do |step|
       dy, dx = step[0], step[1]
       tentative = [y + dy, x + dx]
-      p tentative
-      p @board[tentative].nil?
       shifts << tentative if @board[tentative].nil?
     end
 
-    shifts.select{|shift| shift.all?{ |coord| (0..7).include?(coord) } }
+    shifts.select{ |shift| shift.all?{ |coord| (0..7).include?(coord) } }
   end
 
   def possible_jumps
@@ -107,8 +111,65 @@ class Piece
       jumps << tentative if @board[tentative].nil?
     end
 
-    jumps.select{|jump| jump.all?{ |coord| (0..7).include?(coord) } }
+    jumps.select{ |jump| jump.all?{ |coord| (0..7).include?(coord) } }
+  end
+
+
+
+end
+
+
+
+class Game
+  attr_reader :board
+
+  def initialize
+    @board = Board.new
+    @red_player = Human.new(:red)
+    @blue_player = Human.new(:blue)
+  end
+
+  def play
+    player = @red_player
+    until @board.no_pieces(:red) || @board.no_pieces(:blue)
+      @board.display_board
+      player = toggle_player(player)
+      move_coords = player.get_coords
+      until @board.valid_move?(move_coords[0], move_coords[1], player.color)
+        puts "Invalid move: #{move_coords[0]} to #{move_coords[1]}"
+        move_coords = player.get_coords
+      end
+      @board.move(move_coords[0],move_coords[1])
+    end
+  end
+
+  def toggle_color(color)
+    color == :red ? :blue : :red
+  end
+
+  def toggle_player(player)
+    player == @red_player ? @blue_player : @red_player
   end
 
 end
 
+
+class Human
+  attr_reader :color
+
+  def initialize(color)
+    @color = color
+  end
+
+  def get_coords
+    puts "#{color.to_s.capitalize} Player's Turn"
+    puts "Input command: (yx,yx)"
+    gets.chomp.split(",").map { |coords| [coords[0].to_i, coords[1].to_i] }
+  end
+
+end
+
+if __FILE__ == $0
+  game = Game.new
+  game.play
+end
