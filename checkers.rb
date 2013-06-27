@@ -46,15 +46,6 @@ class Board
 
 
 
-  # def valid_move?(startpoint,endpoint,color)
-  #   restrict = (any_jumps?(color) ? :jumps : nil)
-  #   move_type = move_type(startpoint, endpoint)
-  #   piece = self[startpoint]
-  #   piece && \
-  #   piece.possible_moves(restrict).include?(endpoint) && \
-  #   piece.color == color
-  # end
-
   def perform_shift(color, startpoint, endpoint)
     piece = self[startpoint]
     unless on_board?(startpoint) && on_board?(endpoint)
@@ -120,21 +111,6 @@ class Board
     true
   end
 
-  # def move_and_kill(startpoint, endpoint)
-  #   y1, x1 = startpoint[0], startpoint[1]
-  #   y2, x2 = endpoint[0], endpoint[1]
-  #   self[startpoint].position = endpoint
-  #   victim = self[[(y1 + y2) / 2, (x1 + x2) / 2]] if (y1 - y2).abs == 2
-  #   @pieces.delete(victim) unless victim.nil?
-  # end
-
-  # def move_type(startpoint, endpoint)
-  #   (startpoint[0] - endpoint[0]).abs == 1 ? :move : :shift
-  # end
-
-  # def any_jumps?(color)
-  #   all_pieces(color).any? { |piece| piece.possible_moves(:jumps)[0] }
-  # end
 
   def all_pieces(color)
     @pieces.select{|piece| piece.color == color}
@@ -181,28 +157,6 @@ class Piece
   def promotion_row
     color == :red ? 0 : 7
   end
-
-  # def possible_moves
-#     possible_shifts + possible_jumps
-#   end
-
-  # def possible_moves(restrict = nil)
-  #   moves = []
-  #   y, x = @position
-  #   shift_steps.each do |step|
-  #     dy, dx = step
-  #     if @board[[y + dy, x + dx]].nil?
-  #       moves << [y + dy, x + dx] unless restrict == :jumps
-  #       #p "Added #{[y + dy, x + dx]}" #debug
-  #     elsif @board[[y + dy, x + dx]].color == @color
-  #       next
-  #     else
-  #       moves << [y + 2 * dy, x + 2 * dx]
-  #       #p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
-  #     end
-  #   end
-  #   moves
-  # end
 
 
   def shift_steps
@@ -319,28 +273,6 @@ end
 
 if __FILE__ == $0
   game = Game.new
-
-
-  # board = Board.new(false)
-#   game.board= Board.new(false)
-#   game.board.pieces << King.new([0,7],:blue,game.board)
-#   game.board.pieces << Piece.new([1,6],:red,game.board)
-#   game.board.pieces << Piece.new([3,4],:red,game.board)
-#   game.board.pieces << Piece.new([3,2],:red,game.board)
-#   game.board.pieces << Piece.new([7,7],:red,game.board)
-#
-#   game.board.display_board
-  # p game.board[[4,3]].class
-  # # p game.board[[4,3]].reachable_jumps
-  # p game.board.valid_move_seq?(:blue,[4,3],[2,1])
-  # game.board.display_board
-
-
-
-
-  # board.perform_moves!(:red,[0,7],[2,5],[4,3],[2,1])
-  # board.display_board
-
   game.play
 
 
