@@ -169,9 +169,6 @@ class Piece
     marker.send("#{color}_on_#{background}")
   end
 
-  def reachable_moves
-    reachable_shifts + reachable_moves
-  end
 
   def reachable_shifts
     shifts = []
@@ -239,10 +236,6 @@ class Game
       @board.perform_moves!(player.color, *move_coords)
     end
     puts "#{player.color.upcase} WINS!"
-  end
-
-  def toggle_color(color)
-    color == :red ? :blue : :red
   end
 
   def toggle_player(player)
