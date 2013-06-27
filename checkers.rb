@@ -6,10 +6,19 @@ class Board
 
   def initialize
     @pieces = []
-    # (0..2).each do |i|
-    #   ()
-    @pieces << Piece.new([3,1], :blue, self)
-    @pieces << Piece.new([4,2], :red, self)
+
+    (0..2).each do |i|
+      [0,2,4,6].each do |k|
+        @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :blue, self)
+      end
+    end
+
+    (5..7).each do |i|
+      [0,2,4,6].each do |k|
+        @pieces << Piece.new([i, k + (i.even? ? 1 : 0)], :red, self)
+      end
+    end
+
   end
 
   def [](arr)
