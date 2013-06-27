@@ -256,7 +256,10 @@ class Human
     puts "#{color.to_s.capitalize} Player's Turn"
     puts "Input command."
     puts "Ex: 'yx,yx' for a shift, or 'yx,yx,yx,...' for a jump sequence."
-    gets.chomp.split(",").map { |coords| [coords[0].to_i, coords[1].to_i] }
+    puts "Input 'quit' to exit."
+    coord_array = gets.chomp.split(",")
+    abort if coord_array[0] == "quit"
+    coord_array.map { |coords| [coords[0].to_i, coords[1].to_i] }
   end
 
 end
@@ -267,8 +270,4 @@ end
 if __FILE__ == $0
   game = Game.new
   game.play
-
-
-
-
 end
