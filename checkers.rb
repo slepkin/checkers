@@ -51,8 +51,12 @@ class Board
 
   end
 
-  def move(startpoint,endpoint)
+  def move_and_kill(startpoint,endpoint)
+    y1, x1 = startpoint[0], startpoint[1]
+    y2, x2 = endpoint[0], endpoint[1]
     self[startpoint].position = endpoint
+    victim = self[[(y1 + y2) / 2, (x1 + x2) / 2]] if (y1 - y2).abs == 2
+    @pieces.delete(victim) unless victim.nil?
   end
 
   def no_pieces(color)
@@ -86,12 +90,12 @@ class Piece
       dy, dx = step
       if @board[[y + dy, x + dx]].nil?
         moves << [y + dy, x + dx] if include_shifts
-        p "Added #{[y + dy, x + dx]}" #debug
+        #p "Added #{[y + dy, x + dx]}" #debug
       elsif @board[[y + dy, x + dx]].color == @color
         next
       else
         moves << [y + 2 * dy, x + 2 * dx]
-        p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
+        #p "Added #{[y + 2 * dy, x + 2 * dx]}" #debug
       end
     end
     moves
@@ -159,7 +163,7 @@ class Game
         puts "Invalid move: #{move_coords[0]} to #{move_coords[1]}"
         move_coords = player.get_coords
       end
-      @board.move(move_coords[0],move_coords[1])
+      @board.move_and_kill(move_coords[0],move_coords[1])
     end
   end
 
