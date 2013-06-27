@@ -46,12 +46,16 @@ class Board
 
 
   def valid_move?(startpoint,endpoint,color)
+    restrict = (any_jumps?(color) ? :jumps : nil)
+    move_type = move_type(startpoint, endpoint)
     piece = self[startpoint]
-    piece && piece.possible_moves.include?(endpoint) && piece.color == color
+    piece && \
+    piece.possible_moves(restrict).include?(endpoint) && \
+    piece.color == color
 
   end
 
-  def move_and_kill(startpoint,endpoint)
+  def move_and_kill(startpoint, endpoint)
     y1, x1 = startpoint[0], startpoint[1]
     y2, x2 = endpoint[0], endpoint[1]
     self[startpoint].position = endpoint
@@ -59,9 +63,18 @@ class Board
     @pieces.delete(victim) unless victim.nil?
   end
 
-  def no_pieces(color)
-    !@pieces.any?{|piece| piece.color == color}
+  def move_type(startpoint, endpoint)
+    (startpoint[0] - endpoint[0]).abs == 1 ? :move : :shift
   end
+
+  def any_jumps?(color)
+    all_pieces(color).any? { |piece| piece.possible_moves(:jumps)[0] }
+  end
+
+  def all_pieces(color)
+    @pieces.select{|piece| piece.color == color}
+  end
+
 
 end
 
@@ -83,13 +96,13 @@ class Piece
 #     possible_shifts + possible_jumps
 #   end
 
-  def possible_moves(include_shifts = true)
+  def possible_moves(restrict = nil)
     moves = []
     y, x = @position
     shift_steps.each do |step|
       dy, dx = step
       if @board[[y + dy, x + dx]].nil?
-        moves << [y + dy, x + dx] if include_shifts
+        moves << [y + dy, x + dx] unless restrict == :jumps
         #p "Added #{[y + dy, x + dx]}" #debug
       elsif @board[[y + dy, x + dx]].color == @color
         next
@@ -155,7 +168,7 @@ class Game
 
   def play
     player = @red_player
-    until @board.no_pieces(:red) || @board.no_pieces(:blue)
+    until @board.all_pieces(:red).empty? || @board.all_pieces(:blue).empty?
       @board.display_board
       player = toggle_player(player)
       move_coords = player.get_coords
