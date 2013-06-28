@@ -104,6 +104,14 @@ class Board
     @pieces.delete(victim)
   end
 
+  # REV: Rather than calling promote every time in perform_moves!,
+  # can't you check at the end of perform_moves if the starting
+  # piece has reached a crowning position and then promote it?
+  # You also don't need to re-find the promotee using
+  # @pieces.find{|piece| piece.position == coords}
+  # because you already have the piece at the end of the move and
+  # can utilize that.
+
   def perform_moves!(color, *seq)
     seq.each_with_index do |startpoint, i|
 
