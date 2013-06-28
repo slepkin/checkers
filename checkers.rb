@@ -1,6 +1,24 @@
 require 'set'
 require 'colored'
 
+
+# REV: I think it may be better to split the different classes
+# in to different files. Might help manage things better.
+
+# REV: I like how clean your methods are. They're short, concise
+# and the distinction between the tasks they perform is clear.
+# I also like how you've used all the useful shortcuts Ruby
+# provides. As an example, some people might go for % 2 to check
+# whether a number is even or odd when the .even? method is
+# available.
+
+# REV: Maybe it's just a personal preference, but
+# it might be useful to think of the coordinates in terms
+# of rows and columns rather than switched around standard
+# coordinate axes. I find it especially useful for
+# board games.
+
+
 class Board
   attr_reader :pieces
 
@@ -44,7 +62,9 @@ class Board
     end
   end
 
-
+  # REV: perform_shift and perform_jump perform a series of checks
+  # that are identical. I think that all of that can be delegated to
+  # a method and you'll also shave off about 10 lines from the length.
 
   def perform_shift(color, startpoint, endpoint)
     piece = self[startpoint]
@@ -111,6 +131,10 @@ class Board
     true
   end
 
+
+  # REV: The technique Jonathan showed today
+  # with flatten and compact would be useful for
+  # all_pieces.
 
   def all_pieces(color)
     @pieces.select{|piece| piece.color == color}
@@ -251,6 +275,16 @@ class Human
   def initialize(color)
     @color = color
   end
+
+
+  # REV: Your input allows for any text to be entered.
+  # Maybe it might be better to use something like
+  # regex to only get the numbers.
+  
+  # Furthermore, if I enter an incorrect number
+  # it throws an error.
+  # For example, I tried entering 30,41 for my
+  # starting move and the program stopped.
 
   def get_coords
     puts "#{color.to_s.capitalize} Player's Turn"
