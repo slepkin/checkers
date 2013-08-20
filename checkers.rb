@@ -1,3 +1,4 @@
+
 require 'set'
 require 'colored'
 
@@ -182,14 +183,10 @@ class Piece
   def reachable_jumps
     jumps = []
     y, x = @position
-    p "I am a #{self.class}"
-    p "with steps #{shift_steps}"
     self.shift_steps.each do |step|
       dy, dx = step[0], step[1]
       tentative = [y + 2 * dy, x + 2 * dx]
       between = [y + dy, x + dx]
-      p "Thinking about jumping over #{between} to #{tentative}"
-      p "Between is a : #{@board[between].class}"
       next if @board[between].nil? || @board[between].color == color
       jumps << tentative
     end
